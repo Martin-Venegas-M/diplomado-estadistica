@@ -1,12 +1,12 @@
 ---
 title: |
   ![](../input/images/img.jpeg){width=25% height=25%}  
-  Diplomado Estadística: apuntes clase 10 - TLC e IC
+  Diplomado Estadística: apuntes clase 10 y 11 - IC y Test de Hipotesis
 author: 
   - Martin Venegas
 date: "`r format(Sys.Date(), '%d/%m/%Y')`"
 knit: (function(inputFile, encoding) {
-      out_dir <- "../../output/docs/Apuntes";
+      out_dir <- "../output/docs";
       rmarkdown::render(inputFile,
                         encoding=encoding,
                         output_dir=file.path(dirname(inputFile), out_dir))})
@@ -71,40 +71,42 @@ pacman::p_load(
   ) # librerias
 ```
 
-# Teorema del Limite Central (TLC)
+# Clase 10
+
+## Teorema del Limite Central (TLC)
 
 El teorema del límite central (T.L.C.) es un teorema fundamental de probabilidad y estadística. Describe la distribución de la suma y la media de una muestra
 aleatoria proveniente de una población con varianza finita y que se aproxima a una distribución normal.
 
-# Intervalo de Confianza (IC)
+## Intervalo de Confianza (IC)
 
 Un Intervalo de Confianza (IC) es un rango de valores, donde con alta probabilidad se encuentra un parámetro población que es de interés conocer.
 
-## Algunos comentarios sobre el IC:
+### Algunos comentarios sobre el IC:
 
 - La estimación por IC, a diferencia de una estimación puntual, no entrega un solo valor para un parámetro, sino un intervalo de valores.
 - La estimación por IC estima en forma más imprecisa ya que afirma que el parámetro está entre 2 números y no entrega un valor exacto.
 - En una estimación por IC se puede obtener el error de la estimación y el nivel de confianza de la misma.
 
-## Estimación de parametros por IC
+### Estimación de parametros por IC
 
 - $1 - \alpha$: nivel de confianza (90%, 95%, ..). Asociado con la probabilidad de que el intervalo contengan al parámetro.
 - $\alpha$: nivel de significancia. Se asocia a probabilidad de fallar en la estimación.
 
-### Media ($\mu$)
+#### Media ($\mu$)
 
 - Por TLC sigue una distribución normal.
 - Si $\sigma$ es desconocido se utiliza distribución T-Student.
 
-### Proporción ($P$)
+#### Proporción ($P$)
 
 - Idéntico a la media, solo que en vez de contar números cuenta eventos Bernoulli.
 
-### Desviación Estándar ($\sigma$)
+#### Desviación Estándar ($\sigma$)
 
 - Sigue una distribución Chi-cuadrado
 
-### Diferencia de medias $\mu_1 - \mu_2$
+#### Diferencia de medias $\mu_1 - \mu_2$
 
 - Se necesitan dos muestras aleatorias e independientes entre si.
 - La interpretación del IC es la siguiente:
@@ -112,7 +114,7 @@ Un Intervalo de Confianza (IC) es un rango de valores, donde con alta probabilid
   * Si IC tiene ambos límites positivos -> $\mu_1 > \mu_2$
   * Si IC tiene límite negativo y positivos -> $\mu_1 = \mu_2$
   
-### Dos varianzas
+#### Dos varianzas
 
 Como se mencionó antes, si las varianzas poblacionales no son conocidas, la distrubición de las medias es T-Student. En este caso hay que probar **igualdad de varianzas**, para ver que versión del test se realiza.
 
@@ -120,15 +122,74 @@ Para probar la igualdad de varianzas se debe construir un IC en base a dos varia
 
 Si el IC contiene el valor 1, entonces $\sigma^2_1 = \sigma^2_2$
 
-### Diferencia de proporciones
+#### Diferencia de proporciones
 
 - Se necesitan dos muestras aleatorias e independientes entre si.
 - La interpretación del IC es la siguiente:
   * Si IC tiene ambos límites negativos -> $P_1 < P_2$
   * Si IC tiene ambos límites positivos -> $P_1 > P_2$
   * Si IC tiene límite negativo y positivos -> $P_1 = P_2$
-  
-# Aplicación en R
+
+
+# Clase 11
+
+## Test de hipótesis
+
+Una prueba de hipótesis es un método estadístico inferencial, al igual que los intervalos de confianza, para la toma de decisiones sobre una población con base a la información proporcionada por los datos de una muestra.
+
+
+Se plantean dos hipótesis:
+
+$H_0$ <- hipótesis nula (generalmente asociada a situaciones de no cambio)
+
+$H_1$ <- hipótesis alternativa (generalmente asociada a situación efectiva de cambio)
+
+Una prueba o test de hipótesis se basa en evidencia empírica y en distribuciones de probabilidad, para determinar si la **hipótesis nula ($H_0$)** es una afirmación razonable.
+
+En general, un test de hipótesis tiene pasos ordenados a seguir:
+- Se plantean las hipótesis
+- Se determina un nivel de significancia $\alpha$
+- Selecciona una muestra (datos)
+- Contraste (entre resumen muestral e hipótesis $H_0$)
+- Formula un criterio de decisión (región crítica/valor.p)
+- Concluye rechazando o no rechazando H0
+
+Tanto el rechazo como el no rechazo de H0 dependen de los resultados de evidencia empírica muestral, lo cual puede estar sujeta a posibles errores asociados.  
+
+**Error Tipo I:** $P(\text{rechazar } H_0/ H_0 \text{ es verdadera})$  
+**Error Tipo II:** $P(\text{no rechazar } H_0/ H_0 \text{ es falsa})$  
+
+La probabilidad tipo I se denota como , la cual corresponde al nivel de significancia de la prueba de hipótesis.
+
+La probabilidad real de cometer Error Tipo I se conoce como **valor-p**.
+
+### Definición valor-p
+
+Está definido como la probabilidad de obtener un resultado tan extremo como el que realmente se ha obtenido (valor del estadístico calculado), suponiendo que $H_0$ es cierta.
+
+Se rechaza $H_0$ si el valor-p es igual o menor que el nivel de significancia $\alpha$ establecido, que convencionalmente se usa en 0,05.
+
+## Test de hipótesis de una muestra
+
+- Test para la media poblacional $\mu$ ($\sigma$ conocido): Normal ($Z$)
+
+- Test para la media proporción $P$: Normal ($Z$)
+
+- Test para la varianza poblacional $\sigma^2$: Chi Cuadrado ($X^2$)
+
+## Test de hipótesis de dos muestras
+
+- Test para dos medias $\mu_1$ $\mu_2$ (con $\sigma_1$ y  $\sigma_2$ conocido): Normal ($Z$)
+
+- Test para dos medias con varianzas poblacionales desconocidas (solo $s_1$ y $s_2$): T-Student ($t$)
+
+- Test para comparación de dos varianzas: F ($F$). Se ocupa como paso previo para las test de medias de dos muestras con varianzas poblacionales desconocidas (T-Student).
+
+- Test para comparación de dos proporciones: Normal ($Z$)
+
+- Test para comparación de medias pareadas: T-Student ($t$). Ojo, no es necesario probar igualdad de varianzas, porque es solo una muestra.
+
+# Aplicación en R: Clase 10 y Clase 11
 
 - **Test de proporciones:** _prop.test_
 - **Test de una varianza:** _sigma.test()_
@@ -139,7 +200,7 @@ Si el IC contiene el valor 1, entonces $\sigma^2_1 = \sigma^2_2$
 
 OJO: en todos los test existe el argumento _alternative_ que nos permite especificar que test vamos a hacer.
 
-OJO: la unica diferencia cuando se están probando dos muestras, es que se debe agregar el argumento _y_, para los datos de la segunda muestra.
+OJO: la única diferencia cuando se están probando dos muestras, es que se debe agregar el argumento _y_, para los datos de la segunda muestra.
 
 1. Test de igualdad ( _two.sided_ )
 
@@ -162,7 +223,7 @@ H_0: \mu = \mu_0\\
 H_1: \mu < \mu_0
 \end{align*}
 
-## ¿Cómo calcular intervalos de confianza?
+### ¿Cómo calcular intervalos de confianza?
 
 - Para obtener el intervalo de confianza de un test de hipótesis que hayamos realizado, primero es necesario guardar el test realizado como un objeto
 
@@ -172,7 +233,7 @@ H_1: \mu < \mu_0
 
 OJO!!! El IC solo te obtiene cuando el test de hipótesis se realiza _two.sided_
 
-## Test de dos medias
+### Test de dos medias
 
 - Existen 3 tipos de test de medias
   1. Varianzas iguales
