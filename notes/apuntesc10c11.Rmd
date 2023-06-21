@@ -147,6 +147,7 @@ $H_1$ <- hipótesis alternativa (generalmente asociada a situación efectiva de 
 Una prueba o test de hipótesis se basa en evidencia empírica y en distribuciones de probabilidad, para determinar si la **hipótesis nula ($H_0$)** es una afirmación razonable.
 
 En general, un test de hipótesis tiene pasos ordenados a seguir:
+
 - Se plantean las hipótesis
 - Se determina un nivel de significancia $\alpha$
 - Selecciona una muestra (datos)
