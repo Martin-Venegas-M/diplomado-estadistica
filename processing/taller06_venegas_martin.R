@@ -17,7 +17,7 @@ pacman::p_load(tidyverse,
 
 tcm <- readxl::read_xlsx("input/data/original/TCM2020.xlsx")
 
-# 3. Comenzar taller -----------------
+# 3. Instrucciones taller -----------------
 
 # TALLER DE INTERVALOS Y TEST
 
@@ -29,12 +29,40 @@ tcm <- readxl::read_xlsx("input/data/original/TCM2020.xlsx")
 # En la reunión de trabajo se determina que el uso de nuestra tarjeta presenta áreas de mejora en varios aspectos.
 # Sin embargo, es necesario verificar o refutar las apreciaciones que, durante la reunión, se plantearon sobre la
 # TCM. Estás se pueden resumir como sigue:
-  
+
 # 1. Bajo uso: dado que hasta mayo 2019 el 62% utilizó la tarjeta al menos una vez, y ahora (hasta mayo
 # 2020) se cree que ese porcentaje ha bajado significativamente.
 
+# 2. Montos: El comité de promociones discute que ellos han focalizado apropiadamente las ofertas, de tal
+# forma que han incrementado los montos de compras mensuales, y para comprobar indican que en
+# Mayo2019 fue de m$400, aseguran que este mes fue superior.
 
-# R: 
+# 3. Antiguos: El área de fidelización de clientes (renegociación) es acusada de impedir que antiguos clientes
+# incrementen sus compras al limitar sus niveles de endeudamiento. En otras palabras, entre los que usan
+# la tarjeta, los clientes antiguos tiene montos medios M$50 inferiores a los clientes nuevos (las tarjetas 
+# NumCliente ≤ 250.000 fueron emitidas antes de enero2010 -> antiguos).
+
+# 4. Segmento joven ¿Hay evidencia que permita afirmar que los hombres jóvenes (grupo ≤ 35 años) de
+# regiones gastan más que los hombres jóvenes de la RM?
+
+# Para el cumplimiento de lo anterior, el Departamento de Informática les hace llegar una pequeña muestra
+# aleatoria de clientes con información histórica y los atributos solicitados (ver TCM2020.xlsx)
+
+# Para cada uno de los 4 test de hipótesis indique exactamente lo siguiente:
+
+# 1. Defina el/los parámetros (por ejemplo, Mu = gasto medio en clientes con menos de 50 años)
+# 2. Plantear las hipótesis H0 y H1
+# 3. Entregue el valor del estadístico y el correspondiente valor-p
+# 4. Redacte la conclusión de su decisión en el contexto de lo planteado
+
+# Para todo evento, asuma normalidad y utilice 𝜶 = 𝟎, 𝟎𝟓
+
+# Recuerde que tiene las herramientas necesarias en R para los realizar los test correspondientes y que le
+# permiten responder de manera rápida y precisa lo que se le pregunta. (No haga cálculos manuales).
+
+# 4. Desarrollo taller -----------------
+
+################################################# EJERCICIO 1 ###################################################################################################
 
 # Veamos el porcentaje de quienes usaron la tarjeta en 2020
 sjmisc::frq(tcm$Uso2020)
@@ -58,11 +86,9 @@ prop.test(sum(tcm$Uso2020), # Count of sucess: total de personas que si usaron l
 # Conclusión: No existe evidencia suficiente para sostener que la proporción de personas que utilizaron TCM hasta mayo 2020
 # fue significativamente menor que la proporción de personas que utilizaron TCM hasta mayo 2019 (.62) (p-valor > .05)
 
-# 2. Montos: El comité de promociones discute que ellos han focalizado apropiadamente las ofertas, de tal
-# forma que han incrementado los montos de compras mensuales, y para comprobar indican que en
-# Mayo2019 fue de m$400, aseguran que este mes fue superior.
+################################################################################################################################################################
 
-# R: 
+################################################# EJERCICIO 2 ##################################################################################################
 
 # OJO: El planteamiento es poco preciso, se debería establecer que significa el m$400. Asumiremos que es la media.
 
@@ -70,7 +96,7 @@ mean(tcm %>% filter(UsoMayo == 1) %>% pull(MontoMayo)) # veamos la media
 
 # μ: media de los montos del mes de 2020
 
-# H0: μ ≤ .62
+# H0: μ ≤ 400
 # H1: μ > 400
 
 t.test(
@@ -82,12 +108,9 @@ t.test(
 # Conclusión: Existe evidencia suficiente para sostener que el monto medio del mes de mayo del 2020 es significativamente 
 # mayor al monto medio de mayo del año pasado (valor-p < 0.05)
 
-# 3. Antiguos: El área de fidelización de clientes (renegociación) es acusada de impedir que antiguos clientes
-# incrementen sus compras al limitar sus niveles de endeudamiento. En otras palabras, entre los que usan
-# la tarjeta, los clientes antiguos tiene montos medios M$50 inferiores a los clientes nuevos (las tarjetas 
-# NumCliente ≤ 250.000 fueron emitidas antes de enero2010 -> antiguos).
+################################################################################################################################################################
 
-# R: 
+################################################# EJERCICIO 3 ##################################################################################################
 
 # μ1: monto medio cliente antiguo
 # μ2: monto medio cliente nuevo
@@ -100,7 +123,7 @@ t.test(
 # H0: μ2 - μ1 ≤ 50
 # H1: μ2 - μ1 > 50
 
-# RECORDEMOS, HAY QUE COMPARAR LAS MEDIAS PRIMERO
+# RECORDEMOS, HAY QUE COMPARAR LAS VARIANZAS PRIMERO
 
 # σ1 = varianza de montos cliente antiguo
 # σ2 = varianza de montos cliente nuevo
@@ -127,8 +150,9 @@ t.test(
 # clientes nuevos y antiguos es mayor a m$50 (valor-p > .05). O dicho de otra forma, no hay evidencia suficiente para
 # plantear que el monto medio de los clientes nuevos es mayor que el monto medio de los clientes antiguos más m$50.
 
-# 4. Segmento joven ¿Hay evidencia que permita afirmar que los hombres jóvenes (grupo ≤ 35 años) de
-# regiones gastan más que los hombres jóvenes de la RM?
+################################################################################################################################################################
+
+################################################# EJERCICIO 4 ##################################################################################################
 
 # Asumimos que están hablando del gasto medio.
 
@@ -138,7 +162,7 @@ t.test(
 # H0: μ1 ≤ μ2 
 # H1: μ1 > μ2 
 
-# RECORDEMOS, HAY QUE COMPARAR LAS MEDIAS PRIMERO
+# RECORDEMOS, HAY QUE COMPARAR LAS VARIANZAS PRIMERO
 
 # σ1 = varianza de gasto jovenes hombres regiones
 # σ2 = varianza de gasto jovenes hombres RM
@@ -178,17 +202,4 @@ t.test(
 # Conclusión: Hay suficiente evidencia para sostener que los hombres jovenes de regiones gastan significativamente más que los
 # hombres jovenes de la RM.
 
-# Para el cumplimiento de lo anterior, el Departamento de Informática les hace llegar una pequeña muestra
-# aleatoria de clientes con información histórica y los atributos solicitados (ver TCM2020.xlsx)
-
-# Para cada uno de los 4 test de hipótesis indique exactamente lo siguiente:
-
-# 1. Defina el/los parámetros (por ejemplo, Mu = gasto medio en clientes con menos de 50 años)
-# 2. Plantear las hipótesis H0 y H1
-# 3. Entregue el valor del estadístico y el correspondiente valor-p
-# 4. Redacte la conclusión de su decisión en el contexto de lo planteado
-
-# Para todo evento, asuma normalidad y utilice 𝜶 = 𝟎, 𝟎𝟓
-
-# Recuerde que tiene las herramientas necesarias en R para los realizar los test correspondientes y que le
-# permiten responder de manera rápida y precisa lo que se le pregunta. (No haga cálculos manuales).
+################################################################################################################################################################
