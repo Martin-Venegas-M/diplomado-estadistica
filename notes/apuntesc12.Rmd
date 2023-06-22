@@ -1,0 +1,238 @@
+---
+title: |
+  ![](../input/images/img.jpeg){width=25% height=25%}  
+  Diplomado Estadística: Apuntes ANOVA
+author: 
+  - Martin Venegas
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+knit: (function(inputFile, encoding) {
+      out_dir <- "../output/docs";
+      rmarkdown::render(inputFile,
+                        encoding=encoding,
+                        output_dir=file.path(dirname(inputFile), out_dir))})
+output:
+    bookdown::html_document2:
+          number_sections: false
+          theme: yeti
+    
+linkcolor: black
+urlcolor: blue
+link-citations: yes
+---
+
+<style type="text/css">
+
+h1 {
+  font-size: 38px;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  text-align: center;
+}
+</style>
+
+
+\newpage
+
+\setcounter{tocdepth}{2}
+\renewcommand{\contentsname}{Tabla de contenidos}
+\tableofcontents
+
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment=NA, prompt=FALSE, cache=FALSE, echo=FALSE, results='asis', message = F, warning = F)
+summarytools::st_options(bootstrap.css     = FALSE,
+           plain.ascii       = FALSE,   
+           style             = "rmarkdown",
+           dfSummary.silent  = TRUE, 
+           footnote          = NA,
+           subtitle.emphasis = FALSE,
+           headings =  F,
+           lang =  "es")
+summarytools::st_css()
+
+```
+
+```{r}
+
+# 1. Cargar librerías --------------------
+
+if (!require("pacman")) install.packages("pacman")  #si falta pacman, instalar
+
+pacman::p_load(
+  tidyverse,
+  TeachingDemos # Para test de hipotesis
+  ) # librerias
+```
+
+# Clase 12
+
+## ANOVA
+
+Anova es una técnica estadística que comparar las medias de tres o más poblaciones. Desde el punto de vista de pruebas de hipótesis, se puede considerar como una extensión del test T de 2 medias.
+
+Se basa en la medición de la variabilidad de las observaciones debidas al factor y la variabilidad que recoge del efecto de todos los factores no controlados.
+
+Ejemplos de situaciones donde se busca una relación:
+
+• Determinar si el tipo de vehículo afecta el rendimiento
+del combustible 2.
+
+• Determinar si hay diferencias en el precio en cuatro
+regiones del país.
+
+• Determinar si el método de producción provoca un
+aumento o baja en la productividad (en toneladas).
+
+Se plantean las hipótesis siguientes:
+
+$H_0: μ_1 = μ_2 = ... = μ_k$  
+
+$H1: μ_i ≠ μ_j, \text{ para algún }i≠j$
+
+donde $μ_i$ = media de la variable respuesta en la población i-ésima.
+
+Si alguna media difiere de otras, se deduce que el factor o variable categórica afecta en alguna medida a la variable dependiente.
+
+Algunos términos a usar:
+
+- **Unidad Experimental:** Objeto que será medido
+
+- **Factor:** Es una variable independiente cuyos valores son controlados por el experimentador.
+
+- **Nivel:** categorías del factor.
+
+- **Respuesta:** Variable medida por el experimentador.
+
+### Supuestos de Anova:
+
+- **Supuesto de normalidad:** Los residuos siguen una
+distribución Normal de media 0 y varianza.
+
+- **Supuesto de homocedasticidad:** considera que la
+varianza es constante (no varía) en los diferentes
+niveles de un factor.
+
+- **Muestras independientes**
+
+### Probar supuesto de normalidad:
+
+Test de hipótesis -> $H_0:$ residuos distribuyen normales
+
+- Kolmogorov-Smirnov: _ks.test()_
+- Shapiro-Wilk: _shapiro.test()_
+- Anderson-Darling: _jb.norm.test()_
+- Jarque-Bera: _ad.test()_
+
+Forma gráfica: -> Q-Q plot
+
+La idea es representar los cuantiles de la muestra
+frente a los cuantiles de una variable aleatoria normal.
+
+### Probar homocedasticidad
+
+Test de hipótesis:
+
+- Test de Levene
+- Test de Bartlett (Es más sensible que el test de Levene
+a la falta de normalidad, pero si se está seguro de que
+los datos provienen de una distribución normal, es la
+mejor opción)
+
+Forma gráfica: -> gráfico de residuos
+
+OJOOOOOOO
+
+Si se tiene seguridad de que las muestras a comparar proceden de poblaciones que siguen una distribución normal, son recomendables el F-test y el test de Bartlet, pareciendo ser el segundo más recomendable ya que el primero es muy potente pero extremadamente sensible a desviaciones de la normal.
+
+Si no se tiene la seguridad de que las poblaciones de origen son normales, se recomiendan el test de Leven utilizando la mediana.
+
+### Comparaciones múltiples
+
+Si $H_0$ es rechazado, interesa conocer cuál/es medias son diferentes. Existen algunos métodos para comparar las medias múltiples -> uno de ellos es Intervalos de
+**Tukey**.
+
+Interpretación del intervalo:
+      
+• Si el intervalo incluye cero -> no existe diferencia entre
+significativa entre las medias.
+• Si los dos límites del intervalos son negativos -> la 1°
+media es menor a la 2°.
+• Si los dos límites del intervalos son positivos -> la 1°
+media es mayor a la 2°.
+
+### Comentarios:
+
+• Anova es bastante robusto aun cuando existe cierta falta de normalidad, pero en caso que el tamaño de cada grupo no es muy grande, se puede recurrir a un test no paramétrico (Kruskal-Wallis).
+
+• El Anova es bastante robusto a la falta de igualdad de varianzas si el diseño es equilibrado (mismo número de observaciones por grupo).
+
+• Si no se puede aceptar la homocedasticidad, se recurre a Anova heterodástica (Welch test)
+
+## Kruskal-Wallis
+
+A diferencia del ANOVA en el que se comparan las medias, el test de Kruskal-Wallis contrasta si las diferentes muestras están igualmente distribuidas y que por lo tanto, pertenecen a una misma distribución (o población)  
+
+$H_0:$ Todas las muestras provienen de la misma población  
+
+$H_1:$ No todas las muestras vienen de la misma población
+
+En R es el _kruskal.test()_  
+
+No requiere el cumplimiento de Normalidad.
+
+# Aplicación en R
+
+Para realizar un test de ANOVA, se tiene que usar el comando
+_aov()_ y entregar como argumentos:
+
+- La variable respuesta (los valores de interés)
+- La variable categórica (la o los tratamientos).
+
+```r
+Anova <- aov(valores ~ categoría)
+```
+
+Al usar el comando _plot()_ al ANOVA realizado, entregará 4 gráficos para probar si estos requisitos se cumplen o no
+
+```r
+plot(Anova)
+```
+
+## Test de normalidad
+
+Con el comando _ks.test()_ o _shapiro.test()_ se puede realizar un test para comprobar la normalidad de los datos
+
+```r
+ks.test(anova$residuals , pnorm ”) # Se usa para muchos datos.
+
+shapiro.test(anova$residuals) # Se usa para pocos datos.
+```
+
+## Test de homocedasticidad
+
+Con el comando _bptest()_ del paquete _lmtest()_ permite verificar el supuesto de homoceasticidad
+
+```r
+library(lmtest)
+
+bptest(Anova)
+```
+Este test es complementario con los demás gráficos del anova
+
+## Test de comparaciones multiples (Tukey)
+
+• Para saber cuál de las medias es más grande o más pequeña que otra se realiza el test de Tukey
+
+```r
+TukeyHSD(Anova)
+
+plot(TukeyHSD(Anova))
+
+```
