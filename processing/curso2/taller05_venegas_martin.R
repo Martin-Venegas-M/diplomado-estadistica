@@ -42,13 +42,6 @@ dffits_mar <- function(model){
   data.frame(yhat = dffits(model)) %>% filter(yhat > corte)
 }
 
-dfbetas_mar <- function(model){
-  n <- nobs(model) #n de observaciones
-  k <- length(coef(model)) # n de parametros
-  corte <- 2*sqrt(n) #punt de corte
-  data.frame(yhat_beta = dfbetas(model)) %>% filter(yhat_beta > corte)
-}
-
 
 # 2. Cargar datos --------------------
 
