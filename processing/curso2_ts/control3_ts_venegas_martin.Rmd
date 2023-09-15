@@ -1,0 +1,168 @@
+---
+title: "Control 3 - Series de tiempo"
+subtitle: "Diplomado en Estadística - UC"
+author: "Martín Venegas"
+date: "2023-09-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages}
+
+if (!require("pacman")) install.packages("pacman")  #si falta pacman, instalar
+if (!require("InformationValue")) devtools::install_github("selva86/InformationValue")  #si falta InformationValue, instalar
+pacman::p_load(tidyverse,
+               sjmisc,
+               readxl,
+               sjPlot,
+               kableExtra,
+               gridExtra,
+               forecast,
+               ggfortify
+)
+
+```
+
+```{r load functions}
+
+source("resources/TS.diag.R")
+source("resources/summary.arima.R")
+source("resources/salida.arima.R")
+
+```
+
+
+## Instrucciones Control
+
+De acuerdo con la información preliminar, el Imacec de junio de 2023 cayó 1,0% en comparación con igual mes del a noanterior (Gráfico 1). La serie desestacionalizada aumentó 0,5% respecto del mes precedente y cayó 1,1% en doce meses. El mes registró la misma cantidad de días hábiles que junio de 2022. La variación anual del Imacec fue explicada por la caída del comercio y la industria, compensada en parte por el resto de bienes. En tanto, el crecimiento del Imacec desestacionalizado estuvo determinado por el desempeño de la minería. El Imacec no minero presentó una disminución de 1,3% en doce meses, mientras que en términos desestacionalizados, cayó 0,2% respecto del mes anterior.  
+
+https://www.bcentral.cl  
+
+Ejercicio  
+**(a)** Descargue la serie mensual histórica de Imacec no minero hasta diciembre de 2022.  
+**(b)** Utilizando la función ts(...) genere un objeto con atributos de serie de tiempo  
+**(c)** Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación.  
+**(d)** Utilizando forecast::ndiffs(...) y forecast::nsdiffs(...) evalúe los grados de integración de la serie.  
+**(e)** Ajuste un modelo SARIMA usando forecast::auto.arima(...).  
+**(f)** Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos.  
+**(g)** Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).  
+**(h)** Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.  
+**(i)** Compare el desempeño de sus pronostico con respecto a los valores reales observados hasta junio de 2023.
+
+## Desarrollo Control
+
+
+### **(a)** Descargue la serie mensual histórica de Imacec no minero hasta diciembre de 2022.  
+
+```{r}
+df <-
+  readxl::read_xlsx("../../input/data/original/IMACEC_PIB.xlsx") %>% rename(annio = AÑO,
+                                                                            mes = MES,
+                                                                            imacec = IMACEC_NM)
+
+head(df)
+```
+
+
+### **(b)** Utilizando la función ts(...) genere un objeto con atributos de serie de tiempo 
+
+```{r}
+Y <- ts(df$imacec, start = c(df$annio[1],df$mes[1]), end = c(2022,12), frequency = 12)
+
+plot(Y, ylab = "IMACEC NM")
+```
+
+En en el plot... se observa que no se cumple estacionariadad. Corroboremoslo.
+
+```{r}
+par(mfrow = c(1, 3))
+pacf(Y, ylim = c(-0.25, 1), lwd = 2); acf(Y, lwd = 2); Box.Ljung.Test(Y)
+```
+
+Efectivamenten no se cumple la estacionareidad. A grandes rasgos, se observa un quiebre estructural, una tendencia y estacionalidad.
+
+Provbemos primero removiendo la tendencia
+
+
+
+```{r}
+# PROBAR REMOVER TENDENCIA
+df_proc <-
+  df %>% mutate(pandemia = if_else(annio %in% c(2020, 2021, 2022), 1, 0),
+                tiempo = annio + (mes - 1) / 12) %>% filter(annio < 2023)
+
+m1 <-
+  lm(imacec ~ tiempo + pandemia, data = df_proc) # MODELO DETERMINISTICO PARA IDENTIFICAR EFECTO PANDEMIA
+
+plot(
+  df_proc$imacec ~ df_proc$tiempo,
+  ylab = "IMACEC NM",
+  xlab = "Tiempo",
+  type = "l",
+  pch = 19
+) ; lines(m1$fitted.values ~ df_proc$tiempo, col = "red") # PLOTIEMOS LA TENDENICA
+
+Yr <- m1$residuals # Guardemos los residuos
+```
+Se logra identificar un quiebre. Veamos los residuos.
+
+```{r}
+plot(Yr ~ df_proc$tiempo, type = "l")
+```
+
+Piola, ya no hay tendencia, pero igual está el quiebre. Veamos como le va con los residuos.
+
+```{r}
+par(mfrow = c(1, 3))
+pacf(Yr, ylim = c(-0.25, 1), lwd = 2); acf(Yr, lwd = 2); Box.Ljung.Test(Yr)
+```
+
+Probemos estabilizando varianza. Estabilizaremos tanto la variable original como los residuos de la regresión.
+
+
+### **(c)** Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación. 
+
+```{r}
+## Transformación?
+tiempo <- time(Y)
+par(bty = "n")
+aux <- MASS::boxcox(lm(Y ~ tiempo))
+lambda1 <- aux$x[aux$y == max(aux$y)]
+lambda1
+aux <- MASS::boxcox(lm(Y ~ tiempo)); axis(1, at = lambda1, labels = round(lambda1,3))
+
+## Alternativa
+lambda2 <- forecast::BoxCox.lambda(Y, method = "loglik")
+lambda2
+
+```
+```{r}
+Yv1 <- (Y^lambda1 - 1)/lambda1
+Yrv1 <- (Yr^lambda1 - 1)/lambda1
+
+Yv2<- (Y^lambda2 - 1)/lambda2
+Yrv2 <- (Yr^lambda2 - 1)/lambda2
+```
+
+```{r}
+par(mfrow = c(1, 3))
+plot(Y ~ tiempo, type = "l"); plot(Yv1 ~ tiempo, type = "l"); plot(Yv2 ~ tiempo, type = "l")
+```
+
+```{r}
+par(mfrow = c(1, 3))
+plot(Yr ~ df_proc$tiempo, type = "l"); plot(Yrv1 ~ df_proc$tiempo, type = "l"); plot(Yrv2 ~ df_proc$tiempo, type = "l")
+
+shapiro.test(Yv)
+```
+
+
+### **(d)** Utilizando forecast::ndiffs(...) y forecast::nsdiffs(...) evalúe los grados de integración de la serie.  
+### **(e)** Ajuste un modelo SARIMA usando forecast::auto.arima(...).  
+### **(f)** Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos.  
+### **(g)** Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).  
+### **(h)** Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.  
+### **(i)** Compare el desempeño de sus pronostico con respecto a los valores reales observados hasta junio de 2023.
