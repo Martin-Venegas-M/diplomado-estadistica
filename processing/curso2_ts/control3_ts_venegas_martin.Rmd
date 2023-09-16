@@ -1,168 +1,323 @@
 ---
-title: "Control 3 - Series de tiempo"
-subtitle: "Diplomado en Estadística - UC"
-author: "Martín Venegas"
-date: "2023-09-15"
-output: html_document
+title: |
+ | \vspace{1cm} Control 3: Series de Tiempo
+subtitle: | 
+ Diplomado en Estadística - Curso Métodos Estadísticos - Pontificia Universidad Católica de Chile
+author: 
+  - "Profesor: Oscar Ortiz de la Hoz"
+  - "Ayudante: Diego Aravena"
+  - "Estudiante: Martin Venegas Márquez"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+header-includes:
+- \usepackage{titling}
+- \pretitle{\begin{center}\LARGE\includegraphics[width=10cm]{../../input/images/logo2.png}\\[\bigskipamount]}
+- \posttitle{\end{center}}
+- \usepackage[fontsize=12pt]{scrextend}
+- \usepackage{floatrow}
+- \usepackage{multicol}
+- \floatsetup[figure]{capposition=top}
+- \floatsetup[table]{capposition=top}
+- \floatplacement{figure}{H}
+- \floatplacement{table}{h}
+
+output: 
+  bookdown::pdf_document2:
+    toc: no
+    highlight: tango
+    number_sections: FALSE
+    pandoc_args: !expr rmdfiltr::add_wordcount_filter()
+    
+linkcolor: black
+urlcolor: blue
+link-citations: yes
+papersize: a4
 ---
 
+
+\newpage
+
+\setcounter{tocdepth}{2}
+\renewcommand{\contentsname}{Tabla de contenidos}
+\tableofcontents
+
+\newpage
+
+# Instrucciones
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo=FALSE, message = F, warning = F)
 ```
 
-```{r load packages}
-
+```{r}
+# 1. Cargar paquetes y funciones propias ------------------------
 if (!require("pacman")) install.packages("pacman")  #si falta pacman, instalar
-if (!require("InformationValue")) devtools::install_github("selva86/InformationValue")  #si falta InformationValue, instalar
 pacman::p_load(tidyverse,
                sjmisc,
                readxl,
                sjPlot,
                kableExtra,
                gridExtra,
+               summarytools,
                forecast,
-               ggfortify
+               MASS,
+               uroot,
+               lmtest
+               
 )
-
-```
-
-```{r load functions}
 
 source("resources/TS.diag.R")
 source("resources/summary.arima.R")
 source("resources/salida.arima.R")
-
 ```
 
 
-## Instrucciones Control
-
-De acuerdo con la información preliminar, el Imacec de junio de 2023 cayó 1,0% en comparación con igual mes del a noanterior (Gráfico 1). La serie desestacionalizada aumentó 0,5% respecto del mes precedente y cayó 1,1% en doce meses. El mes registró la misma cantidad de días hábiles que junio de 2022. La variación anual del Imacec fue explicada por la caída del comercio y la industria, compensada en parte por el resto de bienes. En tanto, el crecimiento del Imacec desestacionalizado estuvo determinado por el desempeño de la minería. El Imacec no minero presentó una disminución de 1,3% en doce meses, mientras que en términos desestacionalizados, cayó 0,2% respecto del mes anterior.  
+De acuerdo con la información preliminar, el Imacec de junio de 2023 cayó 1,0% en comparación con igual mes del a noanterior (Gráfico 1). La serie desestacionalizada aumentó 0,5% respecto del mes precedente y cayó 1,1% en doce meses. El mes registró la misma cantidad de días hábiles que junio de 2022. La variación anual del Imacec fue explicada por la caída del comercio y la industria, compensada en parte por el resto de bienes. En tanto, el crecimiento del Imacec desestacionalizado estuvo determinado por el desempeño de la minería. El Imacec no minero presentó una disminución de 1,3% en doce meses, mientras que en términos desestacionalizados, cayó 0,2% respecto del mes anterior.
 
 https://www.bcentral.cl  
 
 Ejercicio  
-**(a)** Descargue la serie mensual histórica de Imacec no minero hasta diciembre de 2022.  
-**(b)** Utilizando la función ts(...) genere un objeto con atributos de serie de tiempo  
-**(c)** Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación.  
-**(d)** Utilizando forecast::ndiffs(...) y forecast::nsdiffs(...) evalúe los grados de integración de la serie.  
-**(e)** Ajuste un modelo SARIMA usando forecast::auto.arima(...).  
-**(f)** Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos.  
-**(g)** Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).  
-**(h)** Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.  
-**(i)** Compare el desempeño de sus pronostico con respecto a los valores reales observados hasta junio de 2023.
 
-## Desarrollo Control
+(a) Descargue la serie mensual histórica de Imacec no minero hasta diciembre de 2022.
+(b) Utilizando la función ts(...) genere un objeto con atributos de serie de tiempo
+(c) Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación.
+(d) Utilizando forecast::ndiffs(...) y forecast::nsdiffs(...) evalúe los grados de integración de la serie.
+(e) Ajuste un modelo SARIMA usando forecast::auto.arima(...).
+(f) Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos.
+(g) Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).
+(h) Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.
+(i) Compare el desempeño de sus pronostico con respecto a los valores reales observados hasta junio de 2023.
 
+\pagebreak
 
-### **(a)** Descargue la serie mensual histórica de Imacec no minero hasta diciembre de 2022.  
+# Desarrollo
 
-```{r}
-df <-
-  readxl::read_xlsx("../../input/data/original/IMACEC_PIB.xlsx") %>% rename(annio = AÑO,
-                                                                            mes = MES,
-                                                                            imacec = IMACEC_NM)
+## (a) Descargue la serie mensual histórica de Imacec no minero hasta diciembre de 2022.
 
-head(df)
-```
-
-
-### **(b)** Utilizando la función ts(...) genere un objeto con atributos de serie de tiempo 
-
-```{r}
-Y <- ts(df$imacec, start = c(df$annio[1],df$mes[1]), end = c(2022,12), frequency = 12)
-
-plot(Y, ylab = "IMACEC NM")
-```
-
-En en el plot... se observa que no se cumple estacionariadad. Corroboremoslo.
-
-```{r}
-par(mfrow = c(1, 3))
-pacf(Y, ylim = c(-0.25, 1), lwd = 2); acf(Y, lwd = 2); Box.Ljung.Test(Y)
-```
-
-Efectivamenten no se cumple la estacionareidad. A grandes rasgos, se observa un quiebre estructural, una tendencia y estacionalidad.
-
-Provbemos primero removiendo la tendencia
-
-
-
-```{r}
-# PROBAR REMOVER TENDENCIA
-df_proc <-
-  df %>% mutate(pandemia = if_else(annio %in% c(2020, 2021, 2022), 1, 0),
-                tiempo = annio + (mes - 1) / 12) %>% filter(annio < 2023)
-
-m1 <-
-  lm(imacec ~ tiempo + pandemia, data = df_proc) # MODELO DETERMINISTICO PARA IDENTIFICAR EFECTO PANDEMIA
-
-plot(
-  df_proc$imacec ~ df_proc$tiempo,
-  ylab = "IMACEC NM",
-  xlab = "Tiempo",
-  type = "l",
-  pch = 19
-) ; lines(m1$fitted.values ~ df_proc$tiempo, col = "red") # PLOTIEMOS LA TENDENICA
-
-Yr <- m1$residuals # Guardemos los residuos
-```
-Se logra identificar un quiebre. Veamos los residuos.
-
-```{r}
-plot(Yr ~ df_proc$tiempo, type = "l")
-```
-
-Piola, ya no hay tendencia, pero igual está el quiebre. Veamos como le va con los residuos.
-
-```{r}
-par(mfrow = c(1, 3))
-pacf(Yr, ylim = c(-0.25, 1), lwd = 2); acf(Yr, lwd = 2); Box.Ljung.Test(Yr)
-```
-
-Probemos estabilizando varianza. Estabilizaremos tanto la variable original como los residuos de la regresión.
-
-
-### **(c)** Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación. 
-
-```{r}
-## Transformación?
-tiempo <- time(Y)
-par(bty = "n")
-aux <- MASS::boxcox(lm(Y ~ tiempo))
-lambda1 <- aux$x[aux$y == max(aux$y)]
-lambda1
-aux <- MASS::boxcox(lm(Y ~ tiempo)); axis(1, at = lambda1, labels = round(lambda1,3))
-
-## Alternativa
-lambda2 <- forecast::BoxCox.lambda(Y, method = "loglik")
-lambda2
+```{r echo=TRUE}
+df <- readxl::read_xlsx("../../input/data/original/IMACEC_PIB.xlsx") %>% 
+  rename(annio = AÑO,
+         mes = MES,
+         imacec = IMACEC_NM
+         ) # Cargar data y renombrar variables
 
 ```
-```{r}
-Yv1 <- (Y^lambda1 - 1)/lambda1
-Yrv1 <- (Yr^lambda1 - 1)/lambda1
 
-Yv2<- (Y^lambda2 - 1)/lambda2
-Yrv2 <- (Yr^lambda2 - 1)/lambda2
+
+## (b) Utilizando la función ts(...) genere un objeto con atributos de serie de tiempo
+
+```{r echo=TRUE}
+Y <- ts(
+  df$imacec,
+  start = c(df$annio[1], df$mes[1]),
+  end = c(2022, 12),
+  frequency = 12
+  ) # Crear objeto TS
 ```
 
 ```{r}
-par(mfrow = c(1, 3))
-plot(Y ~ tiempo, type = "l"); plot(Yv1 ~ tiempo, type = "l"); plot(Yv2 ~ tiempo, type = "l")
+df$tiempo <- df$annio + (df$mes -1)/12 # Agregar variable de tiempo a la base
 ```
 
-```{r}
-par(mfrow = c(1, 3))
-plot(Yr ~ df_proc$tiempo, type = "l"); plot(Yrv1 ~ df_proc$tiempo, type = "l"); plot(Yrv2 ~ df_proc$tiempo, type = "l")
-
-shapiro.test(Yv)
+```{r imacec, echo=FALSE, fig.cap = "Serie de Imacec no minero desde 2002 hasta 2022"}
+plot.ts(Y, ylab = "Imasec no minero", xlab = "Tiempo") # Veamos la serie
 ```
 
 
-### **(d)** Utilizando forecast::ndiffs(...) y forecast::nsdiffs(...) evalúe los grados de integración de la serie.  
-### **(e)** Ajuste un modelo SARIMA usando forecast::auto.arima(...).  
-### **(f)** Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos.  
-### **(g)** Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).  
-### **(h)** Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.  
-### **(i)** Compare el desempeño de sus pronostico con respecto a los valores reales observados hasta junio de 2023.
+En la Figura \@ref(fig:imacec) se presenta una serie de tiempo del Indice Mensual de Actividad Económica (Imacec) no minero entre los años 2002 y 2022. A grandes rasgos, se observa que la serie no cumple con la condición de estacionaridad para ajustar un modelo de series de tiempo. Esto ya que: a) se observa una tendencia al alza en el Imacec; b) se observa un quiebre por evento conocido en los años cercanos al 2020, probablemente relacionado al efecto de la pandemia por COVID-19; c) se observa una posible efecto estacional en la serie, probablemente explicado por la mayor cantidad de disponibilidad de empleo en época de fiestas y fin de año; d) después del año 2010 se observa un incremento leve en la variabilidad, lo que sugiere la necesidad de transformar los datos para un potencial ajuste de modelo.
+
+En consideración de lo expuesto anteriormente, en los puntos siguientes se procederá a transformar la serie a fin de que cumpla los supuestos de estacionaridad y, de esta manera, poder ajustar un modelo que prediga el comportamiento futuro de este indice.
+
+## (c) Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación.
+
+```{r echo=TRUE}
+lambda <- forecast::BoxCox.lambda(Y, method = "loglik") # Da un lambda de 1.2
+Y_v <- forecast::BoxCox(Y, lambda = 1.2)
+```
+
+```{r comp, fig.cap = "Comparación entre serie de Imacec NM no transformado y transformado por BoxCox"}
+# Por si acaso...
+
+df$imacec_v <- (df$imacec ^ lambda - 1) / lambda # Crear ima cec transformado con BoxCox en la base de datos.
+
+## Revisar plots
+plot.ts(
+  cbind(
+    "INM" = Y,
+    "INM (T)" = Y_v
+    ), main = ""
+  )
+```
+
+```{r include=FALSE}
+bptest(imacec ~ tiempo, data = df)
+bptest(imacec_v ~ tiempo, data = df)
+```
+
+
+Al observar la Figura \@ref(fig:comp) no se identifican grandes diferencias entre la serie transformada y no transformada. Esta afirmación se corrobora al aplicar el test de Breusch-Pagan, en tanto no existe evidencia suficiente para rechazar la hipótesis nula de homocedasticidad de varianza (_valor p_ = 3.156e-07 < .05).
+
+## (d) Utilizando forecast::ndiffs(...) y forecast::nsdiffs(...) evalúe los grados de integración de la serie.
+
+Considerando la existencia de una tendencia y estacionalidad, se consideran la posibilidad de una diferenciación. A fin de conocer el nivel de la diferenciación, se aplican los siguientes tests:
+
+```{r echo = TRUE, eval = FALSE}
+# Componente no estacional
+forecast::ndiffs(Y, test = "kpss")
+forecast::ndiffs(Y, test = "adf")
+forecast::ndiffs(Y, test = "pp")
+
+# Componente estacional
+forecast::nsdiffs(Y, test = "seas")
+forecast::nsdiffs(Y, test = "ocsb")
+```
+
+Todos los test sugieren la aplicación de una diferenciación (d = 1), tanto para la componente no estacional como para la componente estacional.
+
+## (e) Ajuste un modelo SARIMA usando forecast::auto.arima(...).
+
+```{r echo = TRUE}
+m_auto <- auto.arima(Y)
+```
+
+
+## (f) Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos.
+
+```{r, results='asis'}
+m_auto <- auto.arima(Y) 
+
+cap1 <- "SARIMA (2, 0, 1)(2, 1, 1) modelo automático"
+
+texreg::knitreg(
+  m_auto,
+  caption = paste(cap1),
+  caption.above = TRUE,
+  custom.coef.names = c("AR(1)", "AR(2)", "MA(1)", "SAR(1)", "SAR(2)", "SMA(1)", "Drift"),
+  scalebox = 0.75,
+  threeparttable = T,
+  custom.note = "\\item *** p < 0.001; ** p < 0.01; * p < 0.05"
+) 
+```
+En la Tabla 1 se presentan los parámetros obtenidos por el el `auto.arima()`. La función sugiere que el mejor modelo es un SARIMA de orden $(p = 2, d = 0, q = 1)(P = 2, D = 0, Q = 1)$. Sin embargo, vemos que no todos los parámetros son estadísticamente significativos, sino que el Imacec no minero se puede predecir a partir de un $AR(2)$ (_valor p_ < .0001) junto con su componente estacional $SAR(2)$ (_valor p_ < .001). Además, el modelo sugiere que el componente de media movil $MA(1)$ y un $Drift$ son parametros relevantes para la prediccón del Imacec (ambos con _valor p_ < .001).
+
+```{r include=FALSE}
+shapiro.test(m_auto$residuals)
+```
+
+En lo que respecta a los supuestos, se aplican los test de Shapiro-Wilk y de Breusch-Pagan para determinar la existencia de normalidad y homocedasticidad de los residuos. Ambos tests sugieren que no se cumple ni con normalidad en los residuos (_valor p _ = 1.475e-13 < .05) ni con homocedasticidad (_valor p_ = 4.872063e-05 < .05).
+
+```{r ljung, fig.cap = "Prueba de Ljung-Box para SARIMA(2,0,1)(2,1,1)"}
+Box.Ljung.Test(m_auto$residuals)
+```
+
+```{r acf, fig.cap = "Gráficos de ACF y PCF para evaluación de autocorrelación en los residuos para SARIMA(2, 0, 1)(2, 1, 1)"}
+par(mfrow = c(1, 2)); acf(coredata(m_auto$residuals), ylim = c(-0.25, 1), lwd = 2, main = ""); pacf(coredata(m_auto$residuals), lwd = 2, main = "")
+```
+
+
+La prueba de Ljung-Box sugiere que se cumple con la blancura en los residuos (Figura \@ref(fig:ljung)). Sin embargo, los gráficos de ACF y PACF (Figura \@ref(fig:acf)) sugieren que aún hay autocorrelación que se puede extraer del modelo. En concreto, se observa que para el componente de autorezago (AR), los lags 6, 9, 11 y 13 están correlacionados significativamente con $Y_t$. Así también, se observa que para el componente de media móvil (MA), los lags 6, 9 y 13 correlacionan significativamente con $Y_t$.
+
+## (g) Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).
+
+En consideración de lo anterior, se procederá a probar un modelo distinto al sugerido por el software. En detalle, a fin de no sobre calcular parámetros, se estimará un modelo con el lag significativo más bajo en el componente de AR, fijando a 0 los lags anteriores. Esto corresponde a un $AR(6)$. A fin de mantener parsimonia, se mantendrá un $MA(1)$, sin embargo, si se incorporará una diferenciación en el componente no estacional, a fin de seguir las recomendaciones de los tests empleados anteriormente.
+
+```{r echo = T}
+# SARIMA de orden 6 en p y P y 
+# de orden 1 en q y Q y 
+# diferenciado en ambas componentes.
+
+AR <- c(rep(0, 5), NA) #p # recordar ver PACF
+MA <- NA #q # recordar ver ACF
+SAR <- c(rep(0, 5), NA)
+SMA <- NA
+
+m_fixed <- forecast::Arima(Y,
+  order = c(6, 1, 1),
+  seasonal = c(6, 1, 1),
+  fixed = c(AR, MA, SAR, SMA)
+  ) ### Ajustar modelo fijado
+```
+
+```{r mfixed, results='asis'}
+cap2 <- "SARIMA (6, 1, 1)(6, 1, 1) calculado manual"
+
+texreg::knitreg(
+  list(m_fixed),
+  caption = paste(cap2),
+  caption.above = TRUE,
+  custom.coef.names = c("AR(1)", "AR(2)", "AR(3)", "AR(4)", "AR(5)", "AR(6)", "MA(1)", "SAR(1)", "SAR(2)", "SAR(3)", "SAR(4)", "SAR(5)", "SAR(6)", "SMA(1)"),
+  scalebox = 0.75,
+  threeparttable = T,
+  custom.note = "\\item *** p < 0.001; ** p < 0.01; * p < 0.05",
+  center = FALSE
+) 
+```
+En la Tabla 2 se observa el modelo propuesto. Se observa que efectivamente $AR(6)$ y su componente estacional son estadísticamente significativos (_valor p_ < .05). Sin embargo, vemos que el AIC es mayor al del modelo calculado automáticamente ($AIC_{SARIMA fixed}$ = 903.34 > $AIC_{SARIMA auto}$ = 895.67), además de tampoco cumplir con los supuestos en los residuos (Shapiro-Wilk: _valor p _ = 6.001e-14 < .05; Breusch-Pagan: _valor p_ = 2.793176e-06 < .05).
+
+En lo que respecta al test de blancura (Figura \@ref(fig:ljungfixed)), se observa que los residuos no presentan una correlación general estadísticamente significativa. A la par, los gráficos de ACF y PACF (Figura \@ref(fig:acf2)) dan cuenta de que el componente de media móvil mejoro un poco en términos de su autocorrelación en comparación al modelo propuesto por el software, sin embargo, el componente de autorezago aun presenta altas cantidades de autocorrelación.
+
+```{r ljungfixed, fig.cap = "Prueba de Ljung-Box para SARIMA(6,1,1)(6,1,1)"}
+Box.Ljung.Test(m_fixed$residuals)
+```
+
+```{r acf2, fig.cap = "Gráficos de ACF y PCF para evaluación de autocorrelación en los residuos para SARIMA(6, 1, 1)(2, 1, 1)"}
+par(mfrow = c(1, 2)); acf(coredata(m_fixed$residuals), ylim = c(-0.25, 1), lwd = 2, main = ""); pacf(coredata(m_fixed$residuals), lwd = 2, main = "")
+```
+
+## (h) Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.
+
+Considerando la comparación anterior, se opta por mantener el modelo propuesto por el software. Con este se realizarán las predicciones solicitadas.
+
+```{r echo = TRUE}
+annio_p <-2023:2027
+mes_p <-rep(1:12,4)
+tiempo_p <- annio_p + (mes_p - 1)/12
+tiempo_p <- tiempo_p[1:length(tiempo_p)] # Para empezar de Enero del 2023
+
+df_preds <- forecast::forecast(m_auto,
+                               h = length(tiempo_p), level = 0.95)
+
+### Generar tabla de predicciones
+P <- cbind(
+  df_preds$mean, 
+  df_preds$lower, 
+  df_preds$upper)
+```
+
+```{r preds, fig.cap = "Prediccón de Imacec no minero hasta 2027"}
+par(bty = "n", las = 1, mfrow = c(1,1), font.main = 1); plot(df_preds, xlim = c(2000, 2030), main = ""); lines(df_preds$fitted, col = "maroon"); abline(h = mean(Y), col = "darkblue", lty = 2)
+```
+
+En la Figura \@ref(fig:preds) se presenta la predicción del Imacec no minero hasta el 2027 en base al modelo SARIMA de orden $(2, 0, 1)(2, 1, 1)$. La línea azul representa los valores reales, la línea rosada representa los valores ajustados y la línea azul claro con contorno gris representa la predicción. A grandes rasgos, se observa que la tendencia y la estacionalidad de la seria se mantendrán, partiendo en enero del 2023 con una estimación de 108.11, bajando a 104.51 en febrero y manteniendo una fluctuación entre 105 y 116 hasta diciembre, donde la estimación tiene su mayor alza con un 122.21. Comparando los periodos de peak en la actividad económica no minera, se estima que para el 2024 el Imacec de diciembre tenga un alza porcentual del 4%, para el 2025 un alza de 4.4% y para el 2026 un alza del 1.68%, todos con respecto al valor del año anterior.
+
+## (i) Compare el desempeño de sus pronostico con respecto a los valores reales observados hasta junio de 2023.
+
+```{r preds2, fig.cap = "Valores reales y predichos para Imacec no minero para el 2023"} 
+df_2023 <- cbind(
+  df %>% filter(tiempo >= 2023.000 & tiempo <= 2023.417),
+  imacec_preds = df_preds$mean[1:6]
+    )
+
+df_2023 <- cbind(df_2023, date = lubridate::ym(paste0(df_2023$annio, "-", df_2023$mes)))
+
+ggplot(df_2023, aes(x = lubridate::ymd(date))) +
+  geom_line(aes(y = imacec, color = "Real")) +
+  geom_line(aes(y = imacec_preds, color = "Predicción")) +
+  geom_point(aes(y = imacec, color = "Real")) +
+  geom_point(aes(y = imacec_preds, color = "Predicción")) +
+  geom_text(aes(y = imacec, label = round(imacec, 2)), size = 3, vjust = -0.5, hjust = -0.2, color = "darkblue") +
+  geom_text(aes(y = imacec_preds, label = round(imacec_preds, 2)), size = 3, vjust = -0.5, hjust = -0.2, color = "maroon") +
+  labs(
+    y = "Imacec no minero",
+    x = "Tiempo",
+    title = ""
+  ) + 
+  theme_classic() +
+  scale_color_manual(values = c("Real" = "darkblue", "Predicción" = "maroon")) +
+  guides(color = guide_legend(title = "")) +
+  theme(legend.position='bottom')
+  # lims(x = c(min(df_2023$date), lubridate::ymd("2023-06-01")))  # Ajusta los límites del eje X
+
+```
+
+
+En la Figura \@ref(fig:preds2) se comparan los valores predichos por el modelo para la primera mitad del 2023 con los valores reales del Imacec. Se observa que, en los primeros tres meses hay estimaciones bastante cercanas a los valores reales. Por ejemplo, para enero el valor real fue de 107.2, en tanto el valor predicho fue de 108.11 lo cual corresponde a una diferencia del 0.84%. Sin embargo, en los meses de abril, mayo y junio los valores predichos se alejan más de los valores reales. Por ejemplo, para junio el valor real del Imaced no minero es de 107, en tanto el valor predicho es de 104, lo cual corresponde a una diferencia porcentual del 2.8%.
+
