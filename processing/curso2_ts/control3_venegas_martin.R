@@ -38,7 +38,7 @@ Y <- ts(df$imacec, start = c(df$annio[1],df$mes[1]), end = c(2022,12), frequency
 
 ### Por si acaso...
 
-df$tiempo <- df$annio + (df$mes -1)/12 # Agregar variable de tiempo a la ase
+df$tiempo <- df$annio + (df$mes -1)/12 # Agregar variable de tiempo a la base
 
 # 4. Realización del taller ---------------------------------------------------------------------------------------------------------------------------------
 
@@ -86,7 +86,7 @@ TS.diag(Y)
 # (c) Utilizando forecast::BoxCox.lambda(...) y forecast::BoxCox(...) evalúe una transformación. ----
 
 lambda <- forecast::BoxCox.lambda(Y, method = "loglik") # Da un lambda de 1.2
-Y_v <- forecast::BoxCox(Y, lambda = 1.2) # Da un lambda de 1.2
+Y_v <- forecast::BoxCox(Y, lambda = 1.2)
 
 # Por si acaso...
 
@@ -183,15 +183,15 @@ TS.diag(Y_vd)
 
 m_auto <- auto.arima(Y) # Ajustar modelo automatico
 m_auto # Ver modelo
-
+sjPlot::tab_model(m_auto)
 # (f) Chequee la significancia estadística de coeficientes estimados, blancura, normalidad y homocedasticidad de los residuos. ----
 
 salida.arima(Y, m_auto) # Ver salida y ajuste
 summary.arima(m_auto) # Ver parametros
 
 # El auto.arima() entrega los siguientes parámetros:
-# - AR(2) = p = 2
-# - MA(1) = q = 1
+# - AR(2) = p = 2 # SE VE CON PACF
+# - MA(1) = q = 1 # SE VE CON ACF
 # - SAR(2) = P = 2
 # - D = 1 (una diferenciación seasonal)
 # - SMA(1) = Q = 2
@@ -203,7 +203,14 @@ TS.diag(m_auto$residuals) # Ver diagnosticos
 
 # Veamos ACF y PACF COMPARADOS
 par(mfrow = c(1, 2))
-acf(m_auto$residuals, ylim = c(-0.25, 1), lwd = 2); pacf(m_auto$residuals, lwd = 2)
+acf(coredata(m_auto$residuals), ylim = c(-0.25, 1), lwd = 2); pacf(coredata(m_auto$residuals), lwd = 2)
+
+# # Veamos ACF y PACF COMPARADOSm con lag max
+# par(mfrow = c(1, 2))
+# acf(m_auto$residuals, lwd = 2, lag.max = 12*19); pacf(m_auto$residuals, lwd = 2, lag.max = 12*19)
+
+## CONCLUSIÓN: ES LO MISMO QUE EL CORE DATA, SOLO QUE TE MUESTRA TODOS LOS LAGS POSIBLES. EL coredata() te muestra los lags más recientes (últimos dos años).
+
 Box.Ljung.Test(m_auto$residuals)
 
 shapiro.test(m_auto$residuals)
@@ -216,35 +223,85 @@ plot.ts(m_auto$residuals)
 
 # (g) Proponga una mejora al modelo propuesto en (e) utilizando el argumento fixed en la función forecast::Arima(...).  ----
 
-# f <- c(
-#   rep(NA, 6), 0, rep(NA, 2), 0, rep(NA, 3), 0, # Fijar valores 7, 10 y 14 para los parámetros φ (AR) y θ (MA)
-#   rep(NA, 5), 0, rep(NA, 2), 0, NA, 0, NA, 0, rep(NA, 6), 0, # Fijar valores 6, 9 , 11, 13 y 20 para los parámetros φ (AR) y θ (MA)
-#   
-#   rep(NA, 6), 0, rep(NA, 2), 0, rep(NA, 3), 0, # Fijar valores 7, 10 y 14 para los parámetros estacionales Φ (SAR) y Θ (SMA)
-#   rep(NA, 5), 0, rep(NA, 2), 0, NA, 0, NA, 0, rep(NA, 6), 0 # Fijar valores 6, 9 , 11, 13 y 20 para los parámetros estacionales Φ (SAR) y Θ (SMA)
-#   )
-
 ### Crear vectores para fijar parametros
-AR <- c(NA)
-MA <- c(rep(0, 5), NA)
-SAR <- c(NA)
-SMA <- c(rep(0, 5), NA)
+
+# ### SARIMA de orden 13 en p,q,P,Q y diferenciado en la componente estacional.
+# AR <- c(rep(0, 5), NA, rep(0, 2), NA, rep(0, 3), 0) # p # recordar ver PACF
+# MA <- c(rep(0, 5), NA, rep(0, 2), NA, rep(0, 3), 0) # q # recordar ver ACF
+# SAR <- c(rep(0, 5), NA, rep(0, 2), NA, rep(0, 3), 0)
+# SMA <- c(rep(0, 5), NA, rep(0, 2), NA, rep(0, 3), 0)
+# 
+# m_fixed <- forecast::Arima(Y,
+#   order = c(13, 0, 13),
+#   seasonal = c(13, 1, 13),
+#   fixed = c(AR, MA, SAR, SMA)
+#   ) ### Ajustar modelo fijado 1 
+
+# COMMENT: IMPOSIBLE, MUCHOS PARAMETROS.
+
+### SARIMA de orden 6 en p y P y de orden 1 en q y Q y diferenciado en ambas componentes.
+AR <- c(rep(0, 5), NA) #p # recordar ver PACF
+MA <- NA #q # recordar ver ACF
+SAR <- c(rep(0, 5), NA)
+SMA <- NA
 
 m_fixed <- forecast::Arima(Y,
-  order = c(1, 0, 6),
-  seasonal = c(1, 1, 6),
+  order = c(6, 1, 1),
+  seasonal = c(6, 1, 1),
   fixed = c(AR, MA, SAR, SMA)
-  ) ### Ajustar modelo fijado 1 
+  ) ### Ajustar modelo fijado 1
 
 m_fixed # Ver modelo
 salida.arima(Y, m_fixed) # Ver salida modelo
 TS.diag(m_fixed$residuals) # Ver diagnostico modelo
 
 par(mfrow = c(1, 2))
-acf(m_fixed$residuals, ylim = c(-0.25, 1), lwd = 2); pacf(m_fixed$residuals, lwd = 2)
+acf(coredata(m_fixed$residuals), ylim = c(-0.25, 1), lwd = 2); pacf(coredata(m_fixed$residuals), lwd = 2)
 Box.Ljung.Test(m_fixed$residuals)
+shapiro.test(m_fixed$residuals)
 
 plot.ts(m_fixed$residuals)
+
+# ### SARIMA de orden 1 en p, P, q y Q diferenciado en la componente estacional.
+# 
+# m_fixed2 <- forecast::Arima(Y,
+#                            order = c(1, 1, 1),
+#                            seasonal = c(1, 1, 1)
+# ) ### Ajustar modelo fijado 1
+# 
+# m_fixed2 # Ver modelo
+# salida.arima(Y, m_fixed2) # Ver salida modelo
+# TS.diag(m_fixed2$residuals) # Ver diagnostico modelo
+# 
+# par(mfrow = c(1, 2))
+# acf(coredata(m_fixed2$residuals), ylim = c(-0.25, 1), lwd = 2); pacf(coredata(m_fixed2$residuals), lwd = 2)
+# Box.Ljung.Test(m_fixed2$residuals)
+# 
+# plot.ts(m_fixed2$residuals)
+# 
+# ### SARIMA de orden 13 en p y P y de orden 1 en q y Q y diferenciado en ambas componentes
+# AR <- c(rep(0, 12), NA) #p # recordar ver PACF
+# MA <- NA #q # recordar ver ACF
+# SAR <- c(rep(0, 12), NA)
+# SMA <- NA
+# 
+# m_fixed3 <- forecast::Arima(Y,
+#                            order = c(13, 1, 1),
+#                            seasonal = c(13, 1, 1),
+#                            fixed = c(AR, MA, SAR, SMA)
+# ) ### Ajustar modelo fijado 1
+# 
+# m_fixed3 # Ver modelo
+# salida.arima(Y, m_fixed3) # Ver salida modelo
+# TS.diag(m_fixed3$residuals) # Ver diagnostico modelo
+# 
+# par(mfrow = c(1, 2))
+# acf(coredata(m_fixed3$residuals), ylim = c(-0.25, 1), lwd = 2); pacf(coredata(m_fixed3$residuals), lwd = 2)
+# Box.Ljung.Test(m_fixed3$residuals)
+# 
+# plot.ts(m_fixed3$residuals)
+# TS.diag(m_fixed3$residuals)
+
 
 # (h) Con forecast::forecast(...) genere pronósticos hasta diciembre de 2027.  ----
 
