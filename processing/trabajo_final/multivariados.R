@@ -25,7 +25,8 @@ pacman::p_load(tidyverse,
                haven,
                psych,
                lavaan,
-               semTable
+               semTable,
+               semPlot
                )
 
 # 2. Cargar datos ---------------------------------------------------------
@@ -79,46 +80,91 @@ fa(bsjo, nfactors = 3,
    fm = "ml", 
    rotate = "varimax") # rotación varimax
 
+fa(bsjo, nfactors = 2, 
+   fm = "ml", 
+   rotate = "varimax") # rotación varimax
+
 # 4. CFA ------------------------------------------------------------------
 
 # Definir modelo de medición
-mod_conf <- '
+
+mod1 <- '
+igualdad =~  IGUAL1 + IGUAL2 + IGUAL3
+necesidad =~ NEC1 + NEC2 + NEC3
+equidad =~   EQUI1 + EQUI2 + EQUI3
+derecho =~   DER1 + DER2 + DER3
+'
+
+mod2 <- '
+igualdad =~  IGUAL1 + IGUAL2 
+necesidad =~ NEC1 + NEC2
+equidad =~   EQUI1 + EQUI2
+derecho =~   DER1 + DER2
+'
+
+mod3 <- '
 igualdad =~  IGUAL1 + IGUAL2 + IGUAL3
 necesidad =~ NEC1 + NEC2 + NEC3
 equidad =~   EQUI1 + EQUI2 + EQUI3 + EQUI4 + EQUI5
 derecho =~   DER1 + DER2 + DER3
 '
 
-bsjo <- bsjo %>% add_column(epsoc_proc %>% select(sexo_rec, hijos_rec, clase_perc_rec))
+#bsjo <- bsjo %>% add_column(epsoc_proc %>% select(sexo_rec, hijos_rec, clase_perc_rec))
 
 # Ajustar modelo CFA
-mod_conf_cfa <- cfa(mod_conf, data = bsjo)
+mod1_cfa <- cfa(mod1, data = bsjo)
+mod2_cfa <- cfa(mod2, data = bsjo)
+mod3_cfa <- cfa(mod3, data = bsjo)
+
 
 # Resultados
 ## Salida general
-summary(mod_conf_cfa,
-        standardized = TRUE, # mostrar cargas estandarizadas
-        fit.measures = TRUE) # mostrar índices de ajuste extendidos
+# summary(mod1_cfa,
+#         standardized = TRUE, # mostrar cargas estandarizadas
+#         fit.measures = TRUE) # mostrar índices de ajuste extendidos
+# 
+# summary(mod2_cfa,
+#         standardized = TRUE, # mostrar cargas estandarizadas
+#         fit.measures = TRUE) # mostrar índices de ajuste extendidos
+# 
+# summary(mod3_cfa,
+#         standardized = TRUE, # mostrar cargas estandarizadas
+#         fit.measures = TRUE) # mostrar índices de ajuste extendidos
 
 # Ver solo índices de ajuste
-fitmeasures(mod_conf_cfa,
-            fit.measures = c("chisq", "df", "pvalue",
-                             "cfi", "rmsea"))
+fitmeasures(mod1_cfa, fit.measures = c("chisq", "df", "pvalue", "cfi", "rmsea"))
+fitmeasures(mod2_cfa, fit.measures = c("chisq", "df", "pvalue", "cfi", "rmsea"))
+fitmeasures(mod3_cfa, fit.measures = c("chisq", "df", "pvalue", "cfi", "rmsea"))
 
-# Diagrama modelo
-semPaths(mod_conf_cfa, # modelo ajustado
-         what = "std",  # mostrar cargas estandarizadas
-         label.cex = 1, edge.label.cex = 1, # tamaño flechas y caracteres
-         residuals = FALSE, # no mostrar residuos
-         edge.color = "black") # color flechas
+semPaths(mod1_cfa, 
+         whatLabels="std", 
+         layout="tree2", 
+         title = FALSE, # Elimina el título
+         rotation = 4,
+         sizeMan=5, sizeLat=15, # Ajusta el tamaño de los nodos
+         edge.label.cex = 1, # Ajusta el tamaño del texto de las etiquetas de las aristas
+         nCharNodes = 0, # Muestra todos los caracteres de los nombres de los nodos
+         curvature = 0.5, # Ajusta la curvatura de las aristas
+         residuals = FALSE, # Muestra las varianzas de los errore
+         exoCov = F,
+         shapeLat = "ellipse",
+         shapeMan = "rectangle"
+)
 
-# Tabla modelo
-## Crear y guardar tabla en formato html
-semTable(mod_conf_cfa, type = "html", 
-         file = "resultados_cfa_ideologia",
-         paramSets = c("loadings", 
-                       "latentcovariances", 
-                       "fits"))
+semPaths(mod2_cfa, 
+         whatLabels="std", 
+         layout="tree2", 
+         title = FALSE, # Elimina el título
+         rotation = 4,
+         sizeMan=5, sizeLat=15, # Ajusta el tamaño de los nodos
+         edge.label.cex = 1, # Ajusta el tamaño del texto de las etiquetas de las aristas
+         nCharNodes = 0, # Muestra todos los caracteres de los nombres de los nodos
+         curvature = 0.5, # Ajusta la curvatura de las aristas
+         residuals = FALSE, # Muestra las varianzas de los errore
+         exoCov = F,
+         shapeLat = "ellipse",
+         shapeMan = "rectangle"
+)
 
 # 5. SEM ------------------------------------------------------------------
 

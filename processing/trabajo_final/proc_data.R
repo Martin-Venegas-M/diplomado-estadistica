@@ -237,7 +237,7 @@ epsoc_proc$educ_madre_rec <- factor(
 
 epsoc_proc$hijos_rec <- factor(
   epsoc_proc$hijos_rec, levels = c(1:3, 8899),
-  labels = c("Niguno", "Uno o dos", "Tres o más", "NSNR")
+  labels = c("Ninguno", "Uno o dos", "Tres o más", "NSNR")
 )
 
 # frq(epsoc_proc$sexo_rec)
