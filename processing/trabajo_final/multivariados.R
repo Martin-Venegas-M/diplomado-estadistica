@@ -36,7 +36,7 @@ epsoc <- readRDS("input/data/proc/epsoc_proc.RDS")
 
 # 3. EFA ------------------------------------------------------------------
 
-bsjo <- epsoc %>% select(
+bsjo <- epsoc %>% rename(
   IGUAL1 = bsjo1,
   IGUAL2 = bsjo2,
   IGUAL3 = bsjo3,
@@ -166,21 +166,46 @@ semPaths(mod2_cfa,
          shapeMan = "rectangle"
 )
 
+semPaths(mod3_cfa, 
+         whatLabels="std", 
+         layout="tree2", 
+         title = FALSE, # Elimina el título
+         rotation = 4,
+         sizeMan=5, sizeLat=15, # Ajusta el tamaño de los nodos
+         edge.label.cex = 1, # Ajusta el tamaño del texto de las etiquetas de las aristas
+         nCharNodes = 0, # Muestra todos los caracteres de los nombres de los nodos
+         curvature = 0.5, # Ajusta la curvatura de las aristas
+         residuals = FALSE, # Muestra las varianzas de los errore
+         exoCov = F,
+         shapeLat = "ellipse",
+         shapeMan = "rectangle"
+)
+
 # 5. SEM ------------------------------------------------------------------
+
+
+
+bsjo <- cbind(bsjo, dummy.code(bsjo$educ_rec))
+bsjo <- cbind(bsjo, dummy.code(bsjo$pueblo_rec))
+bsjo <- cbind(bsjo, dummy.code(bsjo$actividad_principal_rec))
+bsjo <- cbind(bsjo, dummy.code(bsjo$hijos_rec))
+bsjo <- cbind(bsjo, dummy.code(bsjo$clase_perc_rec))
+
+bsjo <- janitor::clean_names(bsjo)
 
 ## Especificar el modelo: medición y estructural
 m_sem1 <- '
 # Modelo medición
-igualdad =~  IGUAL1 + IGUAL2 + IGUAL3
-necesidad =~ NEC1 + NEC2 + NEC3
-equidad =~   EQUI1 + EQUI2 + EQUI3 + EQUI4 + EQUI5
-derecho =~   DER1 + DER2 + DER3
+igualdad =~  igual1 + igual2
+necesidad =~ nec1 + nec2
+equidad =~   equi1 + equi2
+derecho =~   der1 + der2
 
   # Modelo estructural
-igualdad ~  sexo_rec
-necesidad ~ sexo_rec
-equidad ~   sexo_rec
-derecho ~   sexo_rec
+igualdad ~  sexo_rec + universitaria_y_posgrado + tecnica_superior + nsnr + pertenece + nsnr_2 + trabajo_en_la_ocupacion + nsnr_3 + uno_o_dos + tres_o_mas + nsnr_4 + clase_media_baja + clase_media_alta_o_alta + nsnr_5
+necesidad ~ sexo_rec + universitaria_y_posgrado + tecnica_superior + nsnr + pertenece + nsnr_2 + trabajo_en_la_ocupacion + nsnr_3 + uno_o_dos + tres_o_mas + nsnr_4 + clase_media_baja + clase_media_alta_o_alta + nsnr_5
+equidad ~   sexo_rec + universitaria_y_posgrado + tecnica_superior + nsnr + pertenece + nsnr_2 + trabajo_en_la_ocupacion + nsnr_3 + uno_o_dos + tres_o_mas + nsnr_4 + clase_media_baja + clase_media_alta_o_alta + nsnr_5
+derecho ~   sexo_rec + universitaria_y_posgrado + tecnica_superior + nsnr + pertenece + nsnr_2 + trabajo_en_la_ocupacion + nsnr_3 + uno_o_dos + tres_o_mas + nsnr_4 + clase_media_baja + clase_media_alta_o_alta + nsnr_5
 '
 
 ## Ajustar modelo
@@ -192,7 +217,6 @@ summary(f_sem1, fit.measures = T, standardized = T,
 
 ## Exportar tablas
 ### Ajustar versión estandarizada
-f_sem1_std <- sem(m_sem1, data = datos, std.lv = T, std.ov = T)
-semTable(f_sem1_std, type = "html", 
+semTable(f_sem1, type = "html", 
          paramSets = c("loadings", "slopes", "fits", "latentcovariances"),
          file = "resultados_actividad7")
